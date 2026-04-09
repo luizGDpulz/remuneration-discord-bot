@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
 from dataclasses import dataclass
 from getpass import getpass
 from pathlib import Path
@@ -157,6 +159,38 @@ def build_env_content(values: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
+def ask_confirmation(prompt: str, default_no: bool = True) -> bool:
+    suffix = "[s/N]" if default_no else "[S/n]"
+    answer = input(f"{prompt} {suffix}: ").strip().lower()
+    if not answer:
+        return not default_no
+    return answer in {"s", "sim", "y", "yes"}
+
+
+def get_compose_command() -> list[str] | None:
+    docker_path = shutil.which("docker")
+    if docker_path is None:
+        return None
+    return [docker_path, "compose"]
+
+
+def run_compose_command(arguments: list[str]) -> bool:
+    command = get_compose_command()
+    if command is None:
+        print("Docker nao foi encontrado no PATH. Rode o compose manualmente depois.")
+        return False
+
+    full_command = command + arguments
+    print("")
+    print(f"Executando: {' '.join(full_command)}")
+    try:
+        subprocess.run(full_command, cwd=ROOT_DIR, check=True)
+    except subprocess.CalledProcessError as exc:
+        print(f"Falha ao executar o comando. Codigo de saida: {exc.returncode}")
+        return False
+    return True
+
+
 def main() -> None:
     print("Assistente de configuracao do .env para o bot de cagada remunerada")
     print(f"Arquivo de destino: {ENV_FILE}")
@@ -175,18 +209,25 @@ def main() -> None:
         print(f"- {field.key} = {mask_value(field, answers[field.key])}")
 
     print("")
-    confirm = input("Gravar essas configuracoes em .env? [s/N]: ").strip().lower()
-    if confirm not in {"s", "sim", "y", "yes"}:
+    if not ask_confirmation("Gravar essas configuracoes em .env?"):
         print("Operacao cancelada. Nenhum arquivo foi alterado.")
         return
 
     ENV_FILE.write_text(build_env_content(answers), encoding="utf-8")
     print("")
     print(".env salvo com sucesso.")
+    print("Confira se o bot ja foi convidado ao servidor com applications.commands.")
+
+    if ask_confirmation("Deseja subir o ambiente agora com docker compose up -d --build?"):
+        started = run_compose_command(["up", "-d", "--build"])
+        if started and ask_confirmation("Deseja acompanhar os logs do bot agora?"):
+            run_compose_command(["logs", "-f", "remuneration-bot"])
+            return
+
     print("Proximos passos sugeridos:")
-    print("1. Confira se o bot foi convidado ao servidor com applications.commands")
-    print("2. Suba com: docker compose up -d --build")
-    print("3. Veja os logs com: docker compose logs -f remuneration-bot")
+    print("1. Rode: docker compose up -d --build")
+    print("2. Veja os logs com: docker compose logs -f remuneration-bot")
+    print("3. Teste no Discord com: /cagada iniciar")
 
 
 if __name__ == "__main__":

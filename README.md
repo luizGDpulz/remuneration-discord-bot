@@ -191,7 +191,7 @@ python scripts/setup_env.py
 python .\scripts\setup_env.py
 ```
 
-Ele pergunta item por item, mostra um resumo e grava o `.env` para você.
+Ele pergunta item por item, mostra um resumo, grava o `.env` e pode subir o ambiente com `docker compose up -d --build` logo em seguida.
 
 Copie o arquivo de exemplo:
 
@@ -368,6 +368,12 @@ No app do Discord:
 ```bash
 python scripts/setup_env.py
 ```
+
+No final, o próprio assistente pode:
+
+- salvar o `.env`
+- executar `docker compose up -d --build`
+- abrir `docker compose logs -f remuneration-bot`
 
 ### Passo 2. Buscar os dados do Discord
 
