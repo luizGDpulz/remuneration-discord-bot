@@ -1,0 +1,15 @@
+services:
+  remuneration-bot:
+    build: .
+    container_name: remuneration-discord-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - default
+      - mariadb_external
+
+networks:
+  mariadb_external:
+    external: true
+    name: ${DB_DOCKER_NETWORK:-mariadb-net}
